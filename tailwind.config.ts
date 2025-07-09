@@ -28,6 +28,18 @@ export default {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'
 				},
+				agent: {
+					bg: 'hsl(var(--agent-bg))'
+				},
+				conductor: {
+					bg: 'hsl(var(--conductor-bg))'
+				},
+				department: {
+					bg: 'hsl(var(--department-bg))'
+				},
+				consciousness: {
+					glow: 'hsl(var(--consciousness-glow))'
+				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
