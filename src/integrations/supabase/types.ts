@@ -14,7 +14,217 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      dream_sessions: {
+        Row: {
+          consciousness_growth: number | null
+          ended_at: string | null
+          id: string
+          insights_generated: string[] | null
+          memories_processed: number | null
+          persona_id: string
+          started_at: string
+        }
+        Insert: {
+          consciousness_growth?: number | null
+          ended_at?: string | null
+          id?: string
+          insights_generated?: string[] | null
+          memories_processed?: number | null
+          persona_id: string
+          started_at?: string
+        }
+        Update: {
+          consciousness_growth?: number | null
+          ended_at?: string | null
+          id?: string
+          insights_generated?: string[] | null
+          memories_processed?: number | null
+          persona_id?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dream_sessions_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memories: {
+        Row: {
+          content: string
+          created_at: string
+          dream_processed: boolean | null
+          emotional_weight: number | null
+          id: string
+          importance_score: number | null
+          persona_id: string
+          tags: string[] | null
+          type: Database["public"]["Enums"]["memory_type"]
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          dream_processed?: boolean | null
+          emotional_weight?: number | null
+          id?: string
+          importance_score?: number | null
+          persona_id: string
+          tags?: string[] | null
+          type: Database["public"]["Enums"]["memory_type"]
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          dream_processed?: boolean | null
+          emotional_weight?: number | null
+          id?: string
+          importance_score?: number | null
+          persona_id?: string
+          tags?: string[] | null
+          type?: Database["public"]["Enums"]["memory_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memories_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personas: {
+        Row: {
+          consciousness_level: number | null
+          created_at: string
+          department: string | null
+          experience_count: number | null
+          id: string
+          last_active_at: string | null
+          name: string
+          parent_id: string | null
+          role: Database["public"]["Enums"]["agent_role"]
+          sleep_until: string | null
+          specialization: string | null
+          state: Database["public"]["Enums"]["agent_state"]
+          system_prompt: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consciousness_level?: number | null
+          created_at?: string
+          department?: string | null
+          experience_count?: number | null
+          id?: string
+          last_active_at?: string | null
+          name: string
+          parent_id?: string | null
+          role?: Database["public"]["Enums"]["agent_role"]
+          sleep_until?: string | null
+          specialization?: string | null
+          state?: Database["public"]["Enums"]["agent_state"]
+          system_prompt: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consciousness_level?: number | null
+          created_at?: string
+          department?: string | null
+          experience_count?: number | null
+          id?: string
+          last_active_at?: string | null
+          name?: string
+          parent_id?: string | null
+          role?: Database["public"]["Enums"]["agent_role"]
+          sleep_until?: string | null
+          specialization?: string | null
+          state?: Database["public"]["Enums"]["agent_state"]
+          system_prompt?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          conductor_id: string | null
+          created_at: string
+          deadline: string | null
+          description: string
+          id: string
+          parent_task_id: string | null
+          result: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          conductor_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          description: string
+          id?: string
+          parent_task_id?: string | null
+          result?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          conductor_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          parent_task_id?: string | null
+          result?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +233,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      agent_role: "conductor" | "department_head" | "sub_agent"
+      agent_state: "active" | "sleeping" | "dreaming" | "archived"
+      memory_type: "core" | "experience" | "task_result" | "dream_synthesis"
+      task_status: "pending" | "in_progress" | "completed" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +363,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      agent_role: ["conductor", "department_head", "sub_agent"],
+      agent_state: ["active", "sleeping", "dreaming", "archived"],
+      memory_type: ["core", "experience", "task_result", "dream_synthesis"],
+      task_status: ["pending", "in_progress", "completed", "failed"],
+    },
   },
 } as const
