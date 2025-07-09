@@ -124,8 +124,8 @@ export class AgentSystem {
     // Simulate different quality results based on agent specialization match
     const qualityScore = this.calculateQualityScore(task, agent);
     
-    // Generate simulated result
-    const result = this.generateSimulatedResult(task, agent);
+    // Generate agent result (OpenRouter or simulated)
+    const result = await this.generateAgentResult(task, agent);
 
     // Update agent consciousness and experience
     await this.updateAgentExperience(agent, task, qualityScore);
@@ -161,6 +161,34 @@ export class AgentSystem {
     const randomFactor = (Math.random() - 0.5) * 0.1;
     
     return Math.max(0.1, Math.min(1.0, baseQuality + consciousnessBonus + randomFactor));
+  }
+
+  private async generateAgentResult(task: Task, agent: AgentPersona): Promise<string> {
+    // Check if OpenRouter is configured
+    const { OpenRouterConfig } = await import('@/lib/openrouter');
+    
+    if (!OpenRouterConfig.isConfigured()) {
+      // Fallback to simulated result if no OpenRouter config
+      return this.generateSimulatedResult(task, agent);
+    }
+
+    try {
+      const client = OpenRouterConfig.createClient();
+      if (!client) {
+        throw new Error('Failed to create OpenRouter client');
+      }
+
+      const systemContext = agent.parentId === this.conductor?.id 
+        ? 'You are a department head managing specialized agents. Focus on strategic oversight and delegation.'
+        : agent.id === this.conductor?.id
+        ? 'You are the Conductor, orchestrating the entire agent society. Think systematically about task distribution and optimization.'
+        : 'You are a specialized agent contributing to the collective intelligence.';
+
+      return await client.generateAgentResponse(agent, task, systemContext);
+    } catch (error) {
+      console.warn('OpenRouter failed, falling back to simulation:', error);
+      return this.generateSimulatedResult(task, agent);
+    }
   }
 
   private generateSimulatedResult(task: Task, agent: AgentPersona): string {

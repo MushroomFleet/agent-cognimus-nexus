@@ -4,6 +4,7 @@ import { agentSystem } from '@/lib/agent-system';
 import { AgentCard } from '@/components/AgentCard';
 import { TaskCreator } from '@/components/TaskCreator';
 import { AgentCreator } from '@/components/AgentCreator';
+import { OpenRouterConfigDialog } from '@/components/OpenRouterConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -122,6 +123,7 @@ const Index = () => {
               </p>
             </div>
             <div className="flex gap-2">
+              <OpenRouterConfigDialog onConfigChange={() => setAgents(agentSystem.getAllAgents())} />
               <Button onClick={() => setShowAgentCreator(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Agent
