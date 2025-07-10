@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Clock } from 'lucide-react';
+import { Plus, Clock, Brain, Zap, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Task, Persona, NewTask } from '@/types/task';
@@ -22,6 +22,8 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [pendingTaskCount, setPendingTaskCount] = useState(0);
 
   const fetchData = async () => {
     if (!user) return;
@@ -36,6 +38,10 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
 
       if (tasksError) throw tasksError;
       setTasks(tasksData || []);
+      
+      // Update pending task count
+      const pending = tasksData?.filter(t => t.status === 'pending').length || 0;
+      setPendingTaskCount(pending);
 
       // Fetch active personas for assignment
       const { data: personasData, error: personasError } = await supabase
@@ -62,6 +68,46 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
 
   useEffect(() => {
     fetchData();
+    
+    // Set up real-time subscriptions
+    const tasksSubscription = supabase
+      .channel('tasks_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `user_id=eq.${user?.id}`
+        },
+        () => {
+          console.log('Task change detected, refetching data...');
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    const personasSubscription = supabase
+      .channel('personas_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'personas',
+          filter: `user_id=eq.${user?.id}`
+        },
+        () => {
+          console.log('Persona change detected, refetching data...');
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tasksSubscription);
+      supabase.removeChannel(personasSubscription);
+    };
   }, [user]);
 
   const createTask = async (newTask: NewTask) => {
@@ -99,6 +145,39 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
       });
     }
   };
+
+  const processPendingTasks = useCallback(async () => {
+    if (!user || processing) return;
+
+    setProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-tasks');
+      
+      if (error) {
+        console.error('Task processing error:', error);
+        toast({
+          title: "Processing Error",
+          description: "Failed to process tasks automatically",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Task processing result:', data);
+        toast({
+          title: "AI Processing Complete",
+          description: data?.message || "Tasks processed by consciousness network",
+        });
+      }
+    } catch (error: any) {
+      console.error('Task processing error:', error);
+      toast({
+        title: "Processing Error",
+        description: error.message || "Failed to process tasks",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  }, [user, processing, toast]);
 
   const updateTaskStatus = async (taskId: string, status: Task['status']) => {
     try {
@@ -157,15 +236,40 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
           <p className="text-sm text-muted-foreground">
             Manage and monitor tasks across the consciousness collective
           </p>
+          {pendingTaskCount > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <Brain className="h-4 w-4 text-primary" />
+              <span className="text-sm text-primary font-medium">
+                {pendingTaskCount} task{pendingTaskCount === 1 ? '' : 's'} awaiting AI processing
+              </span>
+            </div>
+          )}
         </div>
         
-        <Dialog open={showCreateTask} onOpenChange={setShowCreateTask}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Task
+        <div className="flex gap-3">
+          {pendingTaskCount > 0 && (
+            <Button 
+              onClick={processPendingTasks}
+              disabled={processing}
+              variant="outline"
+              className="gap-2"
+            >
+              {processing ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              {processing ? 'Processing...' : 'Process with AI'}
             </Button>
-          </DialogTrigger>
+          )}
+          
+          <Dialog open={showCreateTask} onOpenChange={setShowCreateTask}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create Task
+              </Button>
+            </DialogTrigger>
           <TaskForm
             open={showCreateTask}
             onOpenChange={setShowCreateTask}
@@ -173,6 +277,7 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
             onSubmit={createTask}
           />
         </Dialog>
+        </div>
       </div>
 
       {/* Task Columns */}

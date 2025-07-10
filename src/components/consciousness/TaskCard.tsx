@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Users } from 'lucide-react';
+import { Brain, Users, Bot, Sparkles } from 'lucide-react';
 import { Task } from '@/types/task';
 import { STATUS_ICONS, STATUS_COLORS } from './TaskConstants';
 
@@ -60,8 +60,22 @@ export function TaskCard({ task, onUpdateStatus }: TaskCardProps) {
 
         {task.result && (
           <div className="pt-2 border-t">
-            <p className="text-sm text-muted-foreground mb-1">Result:</p>
-            <p className="text-sm">{task.result}</p>
+            <div className="flex items-center gap-1 mb-1">
+              <Sparkles className="h-3 w-3 text-primary" />
+              <p className="text-sm text-muted-foreground">AI Generated Result:</p>
+            </div>
+            <div className="bg-muted/50 rounded-md p-3">
+              <p className="text-sm whitespace-pre-wrap">{task.result}</p>
+            </div>
+          </div>
+        )}
+
+        {task.status === 'in_progress' && (
+          <div className="pt-2 border-t">
+            <div className="flex items-center gap-1">
+              <Bot className="h-3 w-3 text-primary animate-pulse" />
+              <p className="text-sm text-primary font-medium">AI processing in progress...</p>
+            </div>
           </div>
         )}
 

@@ -142,6 +142,13 @@ export function PersonaList({ personas, onUpdate }: PersonaListProps) {
             </Badge>
           </div>
           
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Last Active</span>
+            <span className="font-medium text-xs">
+              {new Date(persona.last_active_at).toLocaleString()}
+            </span>
+          </div>
+          
           <div className="flex items-center gap-2 pt-2">
             {persona.state === 'active' ? (
               <Button

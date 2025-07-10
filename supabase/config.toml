@@ -1,1 +1,13 @@
 project_id = "cfbybnptlqiykctvathp"
+
+[auth]
+enabled = true
+site_url = "https://84cc6d6d-c974-4e74-b3fb-0a06a2a4c18d.lovableproject.com"
+additional_redirect_urls = ["https://lovableproject.com"]
+jwt_expiry = 3600
+
+[functions.process-tasks]
+verify_jwt = false
+
+[functions.schedule-task-processing]
+verify_jwt = false
