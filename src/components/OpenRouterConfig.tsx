@@ -39,11 +39,11 @@ export function OpenRouterConfigDialog({ onConfigChange }: OpenRouterConfigProps
       const client = new OpenRouterClient(testApiKey);
       const models = await client.getModels();
       
-      // Filter for chat completion models and sort by popularity
+      // Filter for chat completion models (exclude only embedding models)
       const chatModels = models.filter(model => 
-        model.architecture?.modality === 'text' &&
-        !model.id.includes('vision') &&
-        !model.id.includes('embed')
+        !model.id.includes('embed') &&
+        !model.id.includes('embedding') &&
+        model.id.includes('/') // Valid model format
       );
 
       // Sort with popular models first
