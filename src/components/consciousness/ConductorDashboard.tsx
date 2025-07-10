@@ -10,6 +10,7 @@ import { PersonaCreator } from './PersonaCreator';
 import { PersonaList } from './PersonaList';
 import { TaskManager } from './TaskManager';
 import { MemoryVault } from './MemoryVault';
+import { OpenRouterConfigDialog } from '../OpenRouterConfig';
 
 interface Persona {
   id: string;
@@ -104,13 +105,16 @@ export function ConductorDashboard() {
             Manage your agent collective and consciousness development
           </p>
         </div>
-        <Button 
-          onClick={() => setShowPersonaCreator(true)}
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Create Persona
-        </Button>
+        <div className="flex gap-2">
+          <OpenRouterConfigDialog />
+          <Button 
+            onClick={() => setShowPersonaCreator(true)}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Persona
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
