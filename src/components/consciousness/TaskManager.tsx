@@ -118,7 +118,7 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
         user_id: user.id,
         title: newTask.title,
         description: newTask.description,
-        assigned_to: newTask.assignedTo || null,
+        assigned_to: newTask.assignedTo === 'auto' ? null : newTask.assignedTo || null,
         deadline: newTask.deadline || null,
         status: 'pending' as const
       };
@@ -348,7 +348,7 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
                     <SelectValue placeholder="Auto-assign or select persona..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Auto-assign (Conductor choice)</SelectItem>
+                    <SelectItem value="auto">Auto-assign (Conductor choice)</SelectItem>
                     {personas.map((persona) => (
                       <SelectItem key={persona.id} value={persona.id}>
                         {persona.name} ({persona.role})
