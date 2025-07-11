@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Task, Persona, NewTask } from '@/types/task';
 import { TaskCard } from './TaskCard';
 import { TaskForm } from './TaskForm';
+import { TaskConsole } from './TaskConsole';
 
 interface TaskManagerProps {
   onUpdate: () => void;
@@ -324,6 +325,9 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Live Console */}
+      <TaskConsole isProcessing={processing} />
     </div>
   );
 }

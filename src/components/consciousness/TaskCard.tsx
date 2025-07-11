@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Users, Bot, Sparkles } from 'lucide-react';
+import { Brain, Users, Bot, Sparkles, Eye } from 'lucide-react';
 import { Task } from '@/types/task';
 import { STATUS_ICONS, STATUS_COLORS } from './TaskConstants';
+import { TaskResponseModal } from './TaskResponseModal';
 
 interface TaskCardProps {
   task: Task;
@@ -11,9 +13,16 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onUpdateStatus }: TaskCardProps) {
+  const [showResponseModal, setShowResponseModal] = useState(false);
   const StatusIcon = STATUS_ICONS[task.status];
   
   return (
+    <>
+      <TaskResponseModal 
+        task={task}
+        open={showResponseModal}
+        onOpenChange={setShowResponseModal}
+      />
     <Card className="relative">
       <div className={`absolute top-2 right-2 w-3 h-3 rounded-full ${STATUS_COLORS[task.status]}`} />
       
@@ -60,12 +69,23 @@ export function TaskCard({ task, onUpdateStatus }: TaskCardProps) {
 
         {task.result && (
           <div className="pt-2 border-t">
-            <div className="flex items-center gap-1 mb-1">
-              <Sparkles className="h-3 w-3 text-primary" />
-              <p className="text-sm text-muted-foreground">AI Generated Result:</p>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-primary" />
+                <p className="text-sm text-muted-foreground">AI Generated Result:</p>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowResponseModal(true)}
+                className="h-6 gap-1 text-xs"
+              >
+                <Eye className="h-3 w-3" />
+                View Full
+              </Button>
             </div>
             <div className="bg-muted/50 rounded-md p-3">
-              <p className="text-sm whitespace-pre-wrap">{task.result}</p>
+              <p className="text-sm line-clamp-3 whitespace-pre-wrap">{task.result}</p>
             </div>
           </div>
         )}
@@ -118,5 +138,6 @@ export function TaskCard({ task, onUpdateStatus }: TaskCardProps) {
         )}
       </CardContent>
     </Card>
+    </>
   );
 }
