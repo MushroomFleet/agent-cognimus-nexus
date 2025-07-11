@@ -144,6 +144,48 @@ const savePersonaMemory = async (supabase: any, personaId: string, taskId: strin
   }
 };
 
+const detectTaskSuccess = (result: string): boolean => {
+  const resultLower = result.toLowerCase();
+  
+  // Indicators of failure
+  const failureIndicators = [
+    'failed', 'error', 'cannot', 'unable', 'impossible', 'not possible',
+    'failed to', 'could not', 'unsuccessful', 'incomplete', 'blocked',
+    'permission denied', 'access denied', 'insufficient', 'missing',
+    'i cannot', 'i am unable', 'sorry, i cannot', 'unfortunately'
+  ];
+  
+  // Indicators of success
+  const successIndicators = [
+    'completed', 'successful', 'done', 'finished', 'accomplished',
+    'achieved', 'implemented', 'resolved', 'solved', 'created',
+    'delivered', 'established', 'built', 'designed', 'developed'
+  ];
+  
+  // Check for explicit failure indicators
+  const hasFailureIndicator = failureIndicators.some(indicator => 
+    resultLower.includes(indicator)
+  );
+  
+  // Check for explicit success indicators
+  const hasSuccessIndicator = successIndicators.some(indicator => 
+    resultLower.includes(indicator)
+  );
+  
+  // If result is very short, it might be incomplete
+  if (result.trim().length < 50) {
+    return false;
+  }
+  
+  // If there are clear failure indicators, mark as failed
+  if (hasFailureIndicator && !hasSuccessIndicator) {
+    return false;
+  }
+  
+  // Default to success if result seems substantial and no clear failure
+  return result.trim().length >= 100;
+};
+
 const parseAndCreatePersonas = async (supabase: any, userId: string, conductorId: string, aiResponse: string) => {
   // Look for persona creation patterns in the AI response
   const personaPattern = /(?:create|establish|form|assign)\s+(?:a\s+)?(?:specialist|expert|agent|persona|team member)?\s*(?:named\s+)?(\w+)?\s+(?:who\s+)?(?:specializes?\s+in|focused?\s+on|expert\s+in|for)\s+([^.!?\n]+)/gi;
@@ -344,6 +386,12 @@ serve(async (req) => {
         
         console.log(`Generated result: ${result.substring(0, 100)}...`);
 
+        // Determine if the task was successful based on result content
+        const isSuccessful = detectTaskSuccess(result);
+        const finalStatus = isSuccessful ? 'completed' : 'failed';
+        
+        console.log(`Task processing result: ${finalStatus}`);
+
         // Save memory for the persona that completed the task
         await savePersonaMemory(supabase, selectedPersona.id, task.id, `Completed task: ${task.title}. Result: ${result}`, 'task_result');
 
@@ -359,11 +407,11 @@ serve(async (req) => {
           }
         }
 
-        // Update task with result and mark as completed
+        // Update task with result and mark as completed/failed based on success detection
         const { error: updateError2 } = await supabase
           .from('tasks')
           .update({
-            status: 'completed',
+            status: finalStatus,
             result: result,
             completed_at: new Date().toISOString()
           })

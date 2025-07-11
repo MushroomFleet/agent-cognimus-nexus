@@ -84,6 +84,17 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
         () => {
           console.log('Task change detected, refetching data...');
           fetchData();
+          
+          // Check if any tasks were just completed automatically
+          setTimeout(() => {
+            const completedTasks = tasks.filter(t => t.status === 'completed' && t.result);
+            if (completedTasks.length > 0) {
+              toast({
+                title: "Tasks Auto-Completed",
+                description: `${completedTasks.length} task(s) successfully completed by AI`,
+              });
+            }
+          }, 1000);
         }
       )
       .subscribe();
