@@ -345,7 +345,7 @@ serve(async (req) => {
         console.log(`Generated result: ${result.substring(0, 100)}...`);
 
         // Save memory for the persona that completed the task
-        await savePersonaMemory(supabase, selectedPersona.id, task.id, `Completed task: ${task.title}. Result: ${result.substring(0, 500)}`, 'task_result');
+        await savePersonaMemory(supabase, selectedPersona.id, task.id, `Completed task: ${task.title}. Result: ${result}`, 'task_result');
 
         // If this was a conductor, look for persona creation suggestions and create them
         if (selectedPersona.role === 'conductor') {
