@@ -161,11 +161,11 @@ serve(async (req) => {
 
     console.log('Starting task processing...');
 
-    // Get all pending tasks
+    // Get all pending and stuck in_progress tasks (in case they got stuck)
     const { data: pendingTasks, error: tasksError } = await supabase
       .from('tasks')
       .select('*')
-      .eq('status', 'pending')
+      .in('status', ['pending', 'in_progress'])
       .order('created_at', { ascending: true });
 
     if (tasksError) {
@@ -173,11 +173,11 @@ serve(async (req) => {
       throw tasksError;
     }
 
-    console.log(`Found ${pendingTasks?.length || 0} pending tasks`);
+    console.log(`Found ${pendingTasks?.length || 0} tasks to process (pending and in_progress)`);
 
     if (!pendingTasks || pendingTasks.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No pending tasks to process' }),
+        JSON.stringify({ message: 'No tasks to process' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -215,18 +215,20 @@ serve(async (req) => {
 
         console.log(`Selected persona: ${selectedPersona.name} (${selectedPersona.role})`);
 
-        // Update task to in_progress and assign to persona
-        const { error: updateError1 } = await supabase
-          .from('tasks')
-          .update({
-            status: 'in_progress',
-            assigned_to: selectedPersona.id
-          })
-          .eq('id', task.id);
+        // Only update to in_progress if not already in that state
+        if (task.status === 'pending') {
+          const { error: updateError1 } = await supabase
+            .from('tasks')
+            .update({
+              status: 'in_progress',
+              assigned_to: selectedPersona.id
+            })
+            .eq('id', task.id);
 
-        if (updateError1) {
-          console.error('Error updating task status:', updateError1);
-          continue;
+          if (updateError1) {
+            console.error('Error updating task status:', updateError1);
+            continue;
+          }
         }
 
         // Update persona to active and set last_active_at
