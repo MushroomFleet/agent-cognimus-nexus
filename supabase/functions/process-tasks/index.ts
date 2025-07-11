@@ -279,12 +279,29 @@ const selectBestPersona = async (supabase: any, personas: Persona[], task: Task)
   const departmentHeads = availablePersonas.filter(p => p.role === 'department_head');
   const subAgents = availablePersonas.filter(p => p.role === 'sub_agent');
 
-  // Enhanced selection logic
+  // Enhanced selection logic - prefer existing specialized personas
   const taskText = `${task.title} ${task.description}`.toLowerCase();
   
-  // Look for specialized department heads first
+  // 1. First priority: Look for specialized sub-agents with matching expertise
+  if (subAgents.length > 0) {
+    const specializedSubAgent = subAgents.find(persona => {
+      const specialization = (persona.specialization || '').toLowerCase();
+      const department = (persona.department || '').toLowerCase();
+      return specialization && (
+        taskText.includes(specialization) || 
+        taskText.includes(department) ||
+        specialization.split(' ').some(word => word.length > 3 && taskText.includes(word))
+      );
+    });
+    
+    if (specializedSubAgent) {
+      console.log(`Selected specialized sub-agent: ${specializedSubAgent.name} for specialization: ${specializedSubAgent.specialization}`);
+      return specializedSubAgent;
+    }
+  }
+  
+  // 2. Second priority: Look for specialized department heads
   if (departmentHeads.length > 0) {
-    // Find department head with matching specialization
     const specializedHead = departmentHeads.find(persona => {
       const specialization = (persona.specialization || '').toLowerCase();
       const department = (persona.department || '').toLowerCase();
@@ -301,23 +318,25 @@ const selectBestPersona = async (supabase: any, personas: Persona[], task: Task)
     }
   }
   
-  // Use conductors for complex or general coordination tasks
-  if (conductors.length > 0) {
-    const isComplexTask = taskText.length > 200 || 
-                         taskText.includes('complex') || 
-                         taskText.includes('coordinate') ||
-                         taskText.includes('multiple') ||
-                         taskText.includes('strategy');
-    
-    if (isComplexTask || departmentHeads.length === 0) {
-      return conductors[0];
-    }
+  // 3. For complex or coordination tasks, use conductors
+  const isComplexTask = taskText.length > 200 || 
+                       taskText.includes('complex') || 
+                       taskText.includes('coordinate') ||
+                       taskText.includes('multiple') ||
+                       taskText.includes('strategy') ||
+                       taskText.includes('analyze') ||
+                       taskText.includes('comprehensive');
+  
+  if (isComplexTask && conductors.length > 0) {
+    console.log(`Selected conductor for complex task: ${task.title}`);
+    return conductors[0];
   }
   
-  // Fall back to available personas in order of preference
+  // 4. Fall back to available personas in order of preference
+  // Prefer department heads for moderate complexity, then sub-agents, then conductors
   if (departmentHeads.length > 0) return departmentHeads[0];
-  if (conductors.length > 0) return conductors[0];
   if (subAgents.length > 0) return subAgents[0];
+  if (conductors.length > 0) return conductors[0];
   
   return availablePersonas[0];
 };
