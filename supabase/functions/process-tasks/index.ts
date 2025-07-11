@@ -207,7 +207,7 @@ const parseAndCreatePersonas = async (supabase: any, userId: string, conductorId
             user_id: userId,
             name: name,
             role: 'department_head',
-            state: 'active',
+            state: 'sleeping', // New personas start sleeping
             specialization: specialization,
             department: specialization.split(' ')[0], // Use first word as department
             system_prompt: systemPrompt,
@@ -230,17 +230,17 @@ const parseAndCreatePersonas = async (supabase: any, userId: string, conductorId
   return createdPersonas;
 };
 
-const selectBestPersona = (personas: Persona[], task: Task): Persona | null => {
-  // Filter active personas
-  const activePersonas = personas.filter(p => p.state === 'active');
+const selectBestPersona = async (supabase: any, personas: Persona[], task: Task): Promise<Persona | null> => {
+  // Include sleeping personas in selection - they can be awakened
+  const availablePersonas = personas.filter(p => p.state === 'active' || p.state === 'sleeping');
   
-  if (activePersonas.length === 0) {
+  if (availablePersonas.length === 0) {
     return null;
   }
 
-  const conductors = activePersonas.filter(p => p.role === 'conductor');
-  const departmentHeads = activePersonas.filter(p => p.role === 'department_head');
-  const subAgents = activePersonas.filter(p => p.role === 'sub_agent');
+  const conductors = availablePersonas.filter(p => p.role === 'conductor');
+  const departmentHeads = availablePersonas.filter(p => p.role === 'department_head');
+  const subAgents = availablePersonas.filter(p => p.role === 'sub_agent');
 
   // Enhanced selection logic
   const taskText = `${task.title} ${task.description}`.toLowerCase();
@@ -282,7 +282,7 @@ const selectBestPersona = (personas: Persona[], task: Task): Persona | null => {
   if (conductors.length > 0) return conductors[0];
   if (subAgents.length > 0) return subAgents[0];
   
-  return activePersonas[0];
+  return availablePersonas[0];
 };
 
 serve(async (req) => {
@@ -325,12 +325,12 @@ serve(async (req) => {
       try {
         console.log(`Processing task: ${task.title}`);
 
-        // Get all personas for this user
+        // Get all personas for this user (include sleeping ones that can be awakened)
         const { data: personas, error: personasError } = await supabase
           .from('personas')
           .select('*')
           .eq('user_id', task.user_id)
-          .eq('state', 'active');
+          .in('state', ['active', 'sleeping']);
 
         if (personasError) {
           console.error('Error fetching personas:', personasError);
@@ -343,7 +343,7 @@ serve(async (req) => {
         }
 
         // Select best persona for the task
-        const selectedPersona = selectBestPersona(personas, task);
+        const selectedPersona = await selectBestPersona(supabase, personas, task);
         
         if (!selectedPersona) {
           console.log('No suitable persona found');
@@ -432,17 +432,20 @@ serve(async (req) => {
           continue;
         }
 
-        // Increment experience count for the persona
-        const { error: experienceError } = await supabase
+        // Put the persona back to sleep after completing the task (natural lifecycle)
+        const { error: sleepError } = await supabase
           .from('personas')
           .update({
+            state: 'sleeping',
             experience_count: (selectedPersona.experience_count || 0) + 1,
             consciousness_level: Math.min(10, (selectedPersona.consciousness_level || 1) + 1)
           })
           .eq('id', selectedPersona.id);
 
-        if (experienceError) {
-          console.error('Error updating persona experience:', experienceError);
+        if (sleepError) {
+          console.error('Error putting persona to sleep:', sleepError);
+        } else {
+          console.log(`${selectedPersona.name} has completed their task and gone to sleep`);
         }
 
         processedTasks.push({

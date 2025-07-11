@@ -156,6 +156,7 @@ export function PersonaList({ personas, onUpdate }: PersonaListProps) {
                 variant="outline"
                 onClick={() => updatePersonaState(persona.id, 'sleeping')}
                 className="gap-1"
+                title="Put persona to sleep (they auto-sleep after completing tasks)"
               >
                 <Pause className="h-3 w-3" />
                 Sleep
@@ -166,6 +167,7 @@ export function PersonaList({ personas, onUpdate }: PersonaListProps) {
                 variant="outline"
                 onClick={() => updatePersonaState(persona.id, 'active')}
                 className="gap-1"
+                title="Wake persona (they auto-wake when selected for tasks)"
               >
                 <Zap className="h-3 w-3" />
                 Wake
@@ -200,6 +202,23 @@ export function PersonaList({ personas, onUpdate }: PersonaListProps) {
 
   return (
     <div className="space-y-6">
+      {/* Sleep/Wake Information */}
+      {personas.length > 0 && (
+        <Card className="bg-muted/30 border-dashed">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div>
+                <h4 className="font-medium mb-1">Persona Sleep Cycle</h4>
+                <p className="text-sm text-muted-foreground">
+                  Personas automatically sleep after completing tasks and wake when selected by the Conductor. 
+                  New personas start sleeping until assigned their first task. This natural cycle helps organize the consciousness network as it scales.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {/* Conductors */}
       {groupedPersonas.conductor.length > 0 && (
         <div>
