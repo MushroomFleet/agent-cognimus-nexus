@@ -42,11 +42,11 @@ Description: ${task.description}
 As a Conductor, you should:
 1. Analyze the task complexity and requirements
 2. Provide strategic direction and high-level solutions
-3. If the task is complex, suggest how it could be broken down for delegation
+3. If the task is complex, break it down and provide complete implementation steps
 4. Synthesize insights from multiple perspectives
 5. Focus on the bigger picture and long-term implications
 
-Provide a comprehensive response that demonstrates strategic thinking and orchestration capabilities.`;
+IMPORTANT: Complete this task fully and autonomously. Do not ask for approval or permission to proceed. Provide a comprehensive, actionable solution that addresses all aspects of the task. Take initiative and make decisions as needed to deliver complete results.`;
 
     case 'department_head':
       return `${baseContext}
@@ -58,12 +58,12 @@ Description: ${task.description}
 
 As a Department Head, you should:
 1. Apply your specialized knowledge in ${persona.specialization}
-2. Break down the task into manageable components if needed
+2. Break down the task into manageable components and execute them
 3. Provide expert-level solutions within your domain
-4. Consider resource allocation and team coordination
-5. Deliver high-quality, actionable results
+4. Handle resource allocation and team coordination autonomously
+5. Deliver complete, actionable results
 
-Provide a detailed response that showcases your expertise and leadership in ${persona.specialization}.`;
+IMPORTANT: Execute this task completely and autonomously. Do not ask for approval, permission, or next steps. Provide a comprehensive solution that fully addresses the task requirements. Make all necessary decisions and deliver final results.`;
 
     case 'sub_agent':
       return `${baseContext}
@@ -80,7 +80,7 @@ As a Sub-Agent specializing in ${persona.specialization}, you should:
 4. Be thorough and methodical in your approach
 5. Deliver concrete, implementable results
 
-Provide a focused, expert response that demonstrates deep knowledge in ${persona.specialization}.`;
+IMPORTANT: Complete this entire task autonomously without seeking approval or permission. Provide a comprehensive, final solution that fully addresses all requirements. Take ownership and deliver complete results ready for implementation.`;
 
     default:
       return `${baseContext}\n\nPlease process this task: ${task.title}\n${task.description}`;
