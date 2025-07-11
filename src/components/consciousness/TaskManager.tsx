@@ -40,8 +40,8 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
       if (tasksError) throw tasksError;
       setTasks(tasksData || []);
       
-      // Update pending task count
-      const pending = tasksData?.filter(t => t.status === 'pending').length || 0;
+      // Update pending task count (including in_progress for processing)
+      const pending = tasksData?.filter(t => t.status === 'pending' || t.status === 'in_progress').length || 0;
       setPendingTaskCount(pending);
 
       // Fetch active personas for assignment
@@ -245,7 +245,7 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
             <div className="flex items-center gap-2 mt-2">
               <Brain className="h-4 w-4 text-primary" />
               <span className="text-sm text-primary font-medium">
-                {pendingTaskCount} task{pendingTaskCount === 1 ? '' : 's'} awaiting AI processing
+                {pendingTaskCount} task{pendingTaskCount === 1 ? '' : 's'} ready for AI processing
               </span>
             </div>
           )}
