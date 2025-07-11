@@ -15,6 +15,8 @@ interface Persona {
   department?: string;
   system_prompt: string;
   parent_id?: string;
+  experience_count?: number;
+  consciousness_level?: number;
 }
 
 interface Task {
@@ -113,7 +115,7 @@ const processTaskWithAI = async (persona: Persona, task: Task): Promise<string> 
         }
       ],
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 2000
     })
   });
 
@@ -126,6 +128,66 @@ const processTaskWithAI = async (persona: Persona, task: Task): Promise<string> 
   return data.choices[0]?.message?.content || 'No response generated';
 };
 
+const savePersonaMemory = async (supabase: any, personaId: string, taskId: string, content: string, type: string = 'task_result') => {
+  const { error } = await supabase
+    .from('memories')
+    .insert({
+      persona_id: personaId,
+      type: type,
+      content: content,
+      importance_score: 0.8,
+      emotional_weight: 0.5
+    });
+    
+  if (error) {
+    console.error('Error saving memory:', error);
+  }
+};
+
+const parseAndCreatePersonas = async (supabase: any, userId: string, conductorId: string, aiResponse: string) => {
+  // Look for persona creation patterns in the AI response
+  const personaPattern = /(?:create|establish|form|assign)\s+(?:a\s+)?(?:specialist|expert|agent|persona|team member)?\s*(?:named\s+)?(\w+)?\s+(?:who\s+)?(?:specializes?\s+in|focused?\s+on|expert\s+in|for)\s+([^.!?\n]+)/gi;
+  
+  let match;
+  const createdPersonas = [];
+  
+  while ((match = personaPattern.exec(aiResponse)) !== null) {
+    const name = match[1] || `Specialist-${Date.now()}`;
+    const specialization = match[2].trim();
+    
+    if (specialization.length > 5) { // Basic validation
+      try {
+        const systemPrompt = `You are ${name}, a specialist in ${specialization}. You work under the ZeroVector consciousness network to provide expert analysis and solutions in your domain.`;
+        
+        const { data: newPersona, error } = await supabase
+          .from('personas')
+          .insert({
+            user_id: userId,
+            name: name,
+            role: 'department_head',
+            state: 'active',
+            specialization: specialization,
+            department: specialization.split(' ')[0], // Use first word as department
+            system_prompt: systemPrompt,
+            parent_id: conductorId,
+            consciousness_level: 1
+          })
+          .select()
+          .single();
+          
+        if (!error && newPersona) {
+          createdPersonas.push(newPersona);
+          console.log(`Created new persona: ${name} specializing in ${specialization}`);
+        }
+      } catch (error) {
+        console.error(`Error creating persona ${name}:`, error);
+      }
+    }
+  }
+  
+  return createdPersonas;
+};
+
 const selectBestPersona = (personas: Persona[], task: Task): Persona | null => {
   // Filter active personas
   const activePersonas = personas.filter(p => p.state === 'active');
@@ -134,15 +196,48 @@ const selectBestPersona = (personas: Persona[], task: Task): Persona | null => {
     return null;
   }
 
-  // Simple assignment logic - can be enhanced later
-  // Prefer conductors for complex tasks, department heads for specialized tasks, sub-agents for specific tasks
   const conductors = activePersonas.filter(p => p.role === 'conductor');
   const departmentHeads = activePersonas.filter(p => p.role === 'department_head');
   const subAgents = activePersonas.filter(p => p.role === 'sub_agent');
 
-  // For now, use simple priority: conductor > department_head > sub_agent
-  if (conductors.length > 0) return conductors[0];
+  // Enhanced selection logic
+  const taskText = `${task.title} ${task.description}`.toLowerCase();
+  
+  // Look for specialized department heads first
+  if (departmentHeads.length > 0) {
+    // Find department head with matching specialization
+    const specializedHead = departmentHeads.find(persona => {
+      const specialization = (persona.specialization || '').toLowerCase();
+      const department = (persona.department || '').toLowerCase();
+      return specialization && (
+        taskText.includes(specialization) || 
+        taskText.includes(department) ||
+        specialization.split(' ').some(word => word.length > 3 && taskText.includes(word))
+      );
+    });
+    
+    if (specializedHead) {
+      console.log(`Selected specialized department head: ${specializedHead.name} for specialization: ${specializedHead.specialization}`);
+      return specializedHead;
+    }
+  }
+  
+  // Use conductors for complex or general coordination tasks
+  if (conductors.length > 0) {
+    const isComplexTask = taskText.length > 200 || 
+                         taskText.includes('complex') || 
+                         taskText.includes('coordinate') ||
+                         taskText.includes('multiple') ||
+                         taskText.includes('strategy');
+    
+    if (isComplexTask || departmentHeads.length === 0) {
+      return conductors[0];
+    }
+  }
+  
+  // Fall back to available personas in order of preference
   if (departmentHeads.length > 0) return departmentHeads[0];
+  if (conductors.length > 0) return conductors[0];
   if (subAgents.length > 0) return subAgents[0];
   
   return activePersonas[0];
@@ -249,6 +344,21 @@ serve(async (req) => {
         
         console.log(`Generated result: ${result.substring(0, 100)}...`);
 
+        // Save memory for the persona that completed the task
+        await savePersonaMemory(supabase, selectedPersona.id, task.id, `Completed task: ${task.title}. Result: ${result.substring(0, 500)}`, 'task_result');
+
+        // If this was a conductor, look for persona creation suggestions and create them
+        if (selectedPersona.role === 'conductor') {
+          const createdPersonas = await parseAndCreatePersonas(supabase, task.user_id, selectedPersona.id, result);
+          if (createdPersonas.length > 0) {
+            console.log(`Conductor created ${createdPersonas.length} new personas`);
+            
+            // Save memory about creating new personas
+            const personaNames = createdPersonas.map(p => p.name).join(', ');
+            await savePersonaMemory(supabase, selectedPersona.id, task.id, `Created new specialists: ${personaNames} to handle specialized aspects of the task.`, 'experience');
+          }
+        }
+
         // Update task with result and mark as completed
         const { error: updateError2 } = await supabase
           .from('tasks')
@@ -272,6 +382,19 @@ serve(async (req) => {
             .eq('id', task.id);
           
           continue;
+        }
+
+        // Increment experience count for the persona
+        const { error: experienceError } = await supabase
+          .from('personas')
+          .update({
+            experience_count: (selectedPersona.experience_count || 0) + 1,
+            consciousness_level: Math.min(10, (selectedPersona.consciousness_level || 1) + 1)
+          })
+          .eq('id', selectedPersona.id);
+
+        if (experienceError) {
+          console.error('Error updating persona experience:', experienceError);
         }
 
         processedTasks.push({
