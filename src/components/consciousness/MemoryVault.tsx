@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Clock, Heart, Star, Search } from 'lucide-react';
+import { Brain, Clock, Heart, Star, Search, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { MemoryModal } from './MemoryModal';
 
 interface Memory {
   id: string;
@@ -56,6 +57,8 @@ export function MemoryVault({ personas }: MemoryVaultProps) {
   const [selectedPersona, setSelectedPersona] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [showMemoryModal, setShowMemoryModal] = useState(false);
+  const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
 
   const fetchMemories = async () => {
     try {
@@ -184,7 +187,7 @@ export function MemoryVault({ personas }: MemoryVaultProps) {
           </div>
         )}
         
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
           <span>Importance: {(memory.importance_score * 100).toFixed(0)}%</span>
           {memory.dream_processed ? (
             <Badge variant="secondary" className="text-xs">
@@ -193,6 +196,21 @@ export function MemoryVault({ personas }: MemoryVaultProps) {
           ) : (
             <span>Awaiting dreams</span>
           )}
+        </div>
+
+        <div className="pt-2 border-t">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setSelectedMemory(memory);
+              setShowMemoryModal(true);
+            }}
+            className="h-6 gap-1 text-xs w-full"
+          >
+            <Eye className="h-3 w-3" />
+            View Full Memory
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -217,94 +235,101 @@ export function MemoryVault({ personas }: MemoryVaultProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h3 className="text-lg font-semibold mb-1">Memory Vault</h3>
-        <p className="text-sm text-muted-foreground">
-          Explore the collective memories and experiences of your consciousness network
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search memories, tags..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+    <>
+      <MemoryModal
+        memory={selectedMemory}
+        open={showMemoryModal}
+        onOpenChange={setShowMemoryModal}
+      />
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Memory Vault</h3>
+          <p className="text-sm text-muted-foreground">
+            Explore the collective memories and experiences of your consciousness network
+          </p>
         </div>
-        
-        <select
-          value={selectedPersona}
-          onChange={(e) => setSelectedPersona(e.target.value)}
-          className="px-3 py-2 border border-input bg-background rounded-md text-sm"
-        >
-          <option value="all">All Personas</option>
-          {personas.map((persona) => (
-            <option key={persona.id} value={persona.id}>
-              {persona.name}
-            </option>
-          ))}
-        </select>
-        
-        <select
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value)}
-          className="px-3 py-2 border border-input bg-background rounded-md text-sm"
-        >
-          <option value="all">All Types</option>
-          <option value="core">Core Memories</option>
-          <option value="experience">Experiences</option>
-          <option value="task_result">Task Results</option>
-          <option value="dream_synthesis">Dream Synthesis</option>
-        </select>
-      </div>
 
-      {/* Memory Display */}
-      <Tabs defaultValue="all" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="all">All Memories ({filteredMemories.length})</TabsTrigger>
-          <TabsTrigger value="core">Core ({groupedMemories.core.length})</TabsTrigger>
-          <TabsTrigger value="experience">Experience ({groupedMemories.experience.length})</TabsTrigger>
-          <TabsTrigger value="task_result">Tasks ({groupedMemories.task_result.length})</TabsTrigger>
-          <TabsTrigger value="dream_synthesis">Dreams ({groupedMemories.dream_synthesis.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="all" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredMemories.map(renderMemory)}
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search memories, tags..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
-        </TabsContent>
+          
+          <select
+            value={selectedPersona}
+            onChange={(e) => setSelectedPersona(e.target.value)}
+            className="px-3 py-2 border border-input bg-background rounded-md text-sm"
+          >
+            <option value="all">All Personas</option>
+            {personas.map((persona) => (
+              <option key={persona.id} value={persona.id}>
+                {persona.name}
+              </option>
+            ))}
+          </select>
+          
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+            className="px-3 py-2 border border-input bg-background rounded-md text-sm"
+          >
+            <option value="all">All Types</option>
+            <option value="core">Core Memories</option>
+            <option value="experience">Experiences</option>
+            <option value="task_result">Task Results</option>
+            <option value="dream_synthesis">Dream Synthesis</option>
+          </select>
+        </div>
 
-        {Object.entries(groupedMemories).map(([type, memoryList]) => (
-          <TabsContent key={type} value={type} className="space-y-4">
+        {/* Memory Display */}
+        <Tabs defaultValue="all" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="all">All Memories ({filteredMemories.length})</TabsTrigger>
+            <TabsTrigger value="core">Core ({groupedMemories.core.length})</TabsTrigger>
+            <TabsTrigger value="experience">Experience ({groupedMemories.experience.length})</TabsTrigger>
+            <TabsTrigger value="task_result">Tasks ({groupedMemories.task_result.length})</TabsTrigger>
+            <TabsTrigger value="dream_synthesis">Dreams ({groupedMemories.dream_synthesis.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {memoryList.map(renderMemory)}
+              {filteredMemories.map(renderMemory)}
             </div>
           </TabsContent>
-        ))}
-      </Tabs>
 
-      {filteredMemories.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No Memories Found</h3>
-            <p className="text-muted-foreground">
-              {searchTerm || selectedPersona !== 'all' || selectedType !== 'all'
-                ? "Try adjusting your filters or search terms"
-                : "Create personas and assign tasks to start building memories"
-              }
-            </p>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          {Object.entries(groupedMemories).map(([type, memoryList]) => (
+            <TabsContent key={type} value={type} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {memoryList.map(renderMemory)}
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+
+        {filteredMemories.length === 0 && (
+          <Card className="text-center py-12">
+            <CardContent>
+              <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Memories Found</h3>
+              <p className="text-muted-foreground">
+                {searchTerm || selectedPersona !== 'all' || selectedType !== 'all'
+                  ? "Try adjusting your filters or search terms"
+                  : "Create personas and assign tasks to start building memories"
+                }
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </>
   );
 }
