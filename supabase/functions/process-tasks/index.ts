@@ -187,17 +187,54 @@ const detectTaskSuccess = (result: string): boolean => {
 };
 
 const parseAndCreatePersonas = async (supabase: any, userId: string, conductorId: string, aiResponse: string) => {
-  // Look for persona creation patterns in the AI response
-  const personaPattern = /(?:create|establish|form|assign)\s+(?:a\s+)?(?:specialist|expert|agent|persona|team member)?\s*(?:named\s+)?(\w+)?\s+(?:who\s+)?(?:specializes?\s+in|focused?\s+on|expert\s+in|for)\s+([^.!?\n]+)/gi;
-  
-  let match;
   const createdPersonas = [];
+  
+  // Pattern 1: Bracket format [By Name, Description]
+  const bracketPattern = /\[By\s+([^,]+),\s*([^\]]+)\]/gi;
+  let match;
+  
+  while ((match = bracketPattern.exec(aiResponse)) !== null) {
+    const name = match[1].trim();
+    const specialization = match[2].trim();
+    
+    if (name.length > 1 && specialization.length > 3) {
+      try {
+        const systemPrompt = `You are ${name}, a specialist in ${specialization}. You work under the ZeroVector consciousness network to provide expert analysis and solutions in your domain.`;
+        
+        const { data: newPersona, error } = await supabase
+          .from('personas')
+          .insert({
+            user_id: userId,
+            name: name,
+            role: 'sub_agent',
+            state: 'sleeping',
+            specialization: specialization,
+            department: specialization.split(' ')[0],
+            system_prompt: systemPrompt,
+            parent_id: conductorId,
+            consciousness_level: 1
+          })
+          .select()
+          .single();
+          
+        if (!error && newPersona) {
+          createdPersonas.push(newPersona);
+          console.log(`Created new persona: ${name} specializing in ${specialization}`);
+        }
+      } catch (error) {
+        console.error(`Error creating persona ${name}:`, error);
+      }
+    }
+  }
+  
+  // Pattern 2: Explicit creation language
+  const personaPattern = /(?:create|establish|form|assign)\s+(?:a\s+)?(?:specialist|expert|agent|persona|team member)?\s*(?:named\s+)?(\w+)?\s+(?:who\s+)?(?:specializes?\s+in|focused?\s+on|expert\s+in|for)\s+([^.!?\n]+)/gi;
   
   while ((match = personaPattern.exec(aiResponse)) !== null) {
     const name = match[1] || `Specialist-${Date.now()}`;
     const specialization = match[2].trim();
     
-    if (specialization.length > 5) { // Basic validation
+    if (specialization.length > 5) {
       try {
         const systemPrompt = `You are ${name}, a specialist in ${specialization}. You work under the ZeroVector consciousness network to provide expert analysis and solutions in your domain.`;
         
@@ -207,9 +244,9 @@ const parseAndCreatePersonas = async (supabase: any, userId: string, conductorId
             user_id: userId,
             name: name,
             role: 'department_head',
-            state: 'sleeping', // New personas start sleeping
+            state: 'sleeping',
             specialization: specialization,
-            department: specialization.split(' ')[0], // Use first word as department
+            department: specialization.split(' ')[0],
             system_prompt: systemPrompt,
             parent_id: conductorId,
             consciousness_level: 1
