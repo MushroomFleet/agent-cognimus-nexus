@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Users, Bot, Sparkles, Eye } from 'lucide-react';
+import { Brain, Users, Bot, Sparkles, Eye, X } from 'lucide-react';
 import { Task } from '@/types/task';
 import { STATUS_ICONS, STATUS_COLORS } from './TaskConstants';
 import { TaskResponseModal } from './TaskResponseModal';
@@ -10,9 +10,10 @@ import { TaskResponseModal } from './TaskResponseModal';
 interface TaskCardProps {
   task: Task;
   onUpdateStatus: (taskId: string, status: Task['status']) => void;
+  onDelete?: (taskId: string) => void;
 }
 
-export function TaskCard({ task, onUpdateStatus }: TaskCardProps) {
+export function TaskCard({ task, onUpdateStatus, onDelete }: TaskCardProps) {
   const [showResponseModal, setShowResponseModal] = useState(false);
   const StatusIcon = STATUS_ICONS[task.status];
   
@@ -25,6 +26,17 @@ export function TaskCard({ task, onUpdateStatus }: TaskCardProps) {
       />
     <Card className="relative">
       <div className={`absolute top-2 right-2 w-3 h-3 rounded-full ${STATUS_COLORS[task.status]}`} />
+      
+      {onDelete && (task.status === 'completed' || task.status === 'failed') && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onDelete(task.id)}
+          className="absolute top-2 right-8 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      )}
       
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">

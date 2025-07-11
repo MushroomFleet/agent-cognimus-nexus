@@ -214,6 +214,31 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
     }
   };
 
+  const deleteTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task Deleted",
+        description: "Task has been permanently removed",
+      });
+
+      fetchData();
+      onUpdate();
+    } catch (error: any) {
+      toast({
+        title: "Delete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -300,6 +325,7 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
                   key={task.id}
                   task={task}
                   onUpdateStatus={updateTaskStatus}
+                  onDelete={deleteTask}
                 />
               ))}
               {taskList.length === 0 && (
