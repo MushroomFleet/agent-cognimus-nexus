@@ -150,15 +150,19 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
   const processPendingTasks = useCallback(async () => {
     if (!user || processing) return;
 
+    console.log('Starting task processing...');
     setProcessing(true);
     try {
+      console.log('Invoking process-tasks function...');
       const { data, error } = await supabase.functions.invoke('process-tasks');
+      
+      console.log('Function response:', { data, error });
       
       if (error) {
         console.error('Task processing error:', error);
         toast({
           title: "Processing Error",
-          description: "Failed to process tasks automatically",
+          description: `Failed to process tasks: ${error.message}`,
           variant: "destructive",
         });
       } else {
@@ -169,7 +173,7 @@ export function TaskManager({ onUpdate }: TaskManagerProps) {
         });
       }
     } catch (error: any) {
-      console.error('Task processing error:', error);
+      console.error('Task processing error caught:', error);
       toast({
         title: "Processing Error",
         description: error.message || "Failed to process tasks",
