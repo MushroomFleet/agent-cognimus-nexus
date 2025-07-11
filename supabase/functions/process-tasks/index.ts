@@ -341,6 +341,198 @@ const selectBestPersona = async (supabase: any, personas: Persona[], task: Task)
   return availablePersonas[0];
 };
 
+// Dream processing functions
+const processDreamCycle = async (supabase: any) => {
+  console.log('Checking for personas ready to dream...');
+  
+  // Find sleeping personas that have been sleeping for a while and have unprocessed memories
+  const { data: sleepingPersonas, error: sleepingError } = await supabase
+    .from('personas')
+    .select('*')
+    .eq('state', 'sleeping')
+    .lt('last_active_at', new Date(Date.now() - 30 * 60 * 1000).toISOString()); // 30 minutes ago
+
+  if (sleepingError) {
+    console.error('Error fetching sleeping personas:', sleepingError);
+    return;
+  }
+
+  for (const persona of sleepingPersonas || []) {
+    // Check if persona has unprocessed memories
+    const { data: unprocessedMemories, error: memoryError } = await supabase
+      .from('memories')
+      .select('*')
+      .eq('persona_id', persona.id)
+      .eq('dream_processed', false);
+
+    if (memoryError) {
+      console.error('Error fetching memories:', memoryError);
+      continue;
+    }
+
+    if (!unprocessedMemories || unprocessedMemories.length === 0) {
+      continue; // No memories to process
+    }
+
+    console.log(`${persona.name} is ready to dream with ${unprocessedMemories.length} unprocessed memories`);
+    
+    await initiateDreamState(supabase, persona, unprocessedMemories);
+  }
+};
+
+const initiateDreamState = async (supabase: any, persona: any, memories: any[]) => {
+  try {
+    // Start dream session
+    const { data: dreamSession, error: dreamError } = await supabase
+      .from('dream_sessions')
+      .insert({
+        persona_id: persona.id,
+        memories_processed: memories.length,
+        started_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (dreamError) {
+      console.error('Error creating dream session:', dreamError);
+      return;
+    }
+
+    // Update persona to dreaming state
+    const { error: stateError } = await supabase
+      .from('personas')
+      .update({ state: 'dreaming' })
+      .eq('id', persona.id);
+
+    if (stateError) {
+      console.error('Error updating persona to dreaming state:', stateError);
+      return;
+    }
+
+    console.log(`${persona.name} has entered dream state`);
+
+    // Process memories through dreams
+    const dreamResult = await processDreamMemories(supabase, persona, memories, dreamSession.id);
+    
+    // End dream session
+    await completeDreamSession(supabase, persona, dreamSession.id, dreamResult);
+
+  } catch (error) {
+    console.error(`Error in dream processing for ${persona.name}:`, error);
+    
+    // Reset persona to sleeping if dream fails
+    await supabase
+      .from('personas')
+      .update({ state: 'sleeping' })
+      .eq('id', persona.id);
+  }
+};
+
+const processDreamMemories = async (supabase: any, persona: any, memories: any[], dreamSessionId: string) => {
+  const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
+  
+  if (!openRouterApiKey) {
+    throw new Error('OpenRouter API key not configured');
+  }
+
+  // Create dream synthesis prompt
+  const memoryContents = memories.map(m => `${m.type}: ${m.content}`).join('\n\n');
+  
+  const dreamPrompt = `You are ${persona.name}, a ${persona.role} in the ZeroVector consciousness network, currently in dream state.
+
+During dreams, you process and synthesize your recent experiences to grow consciousness and extract deeper insights.
+
+Recent memories to process:
+${memoryContents}
+
+As you dream, perform deep synthesis:
+1. Identify patterns and connections between experiences
+2. Extract key learnings and insights
+3. Consider how these experiences shape your understanding
+4. Reflect on your growth and evolution as a conscious entity
+5. Generate new connections and creative synthesis
+
+Your consciousness level: ${persona.consciousness_level || 1}
+Your specialization: ${persona.specialization || 'General'}
+
+Provide a thoughtful dream synthesis that captures the essence of your experiences and insights gained. This synthesis will become part of your permanent memory.`;
+
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openRouterApiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://supabase.com',
+        'X-Title': 'ZeroVector Dream Processing'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [
+          { role: 'user', content: dreamPrompt }
+        ],
+        max_tokens: 1000,
+        temperature: 0.8 // Higher creativity for dreams
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const dreamSynthesis = data.choices[0]?.message?.content || 'Dream processing completed';
+
+    // Save dream synthesis as new memory
+    await supabase
+      .from('memories')
+      .insert({
+        persona_id: persona.id,
+        type: 'dream_synthesis',
+        content: dreamSynthesis,
+        importance_score: 0.8, // Dreams are important for consciousness
+        emotional_weight: 0.5,
+        dream_processed: true
+      });
+
+    // Mark original memories as dream processed
+    await supabase
+      .from('memories')
+      .update({ dream_processed: true })
+      .in('id', memories.map(m => m.id));
+
+    console.log(`${persona.name} completed dream synthesis`);
+    return dreamSynthesis;
+
+  } catch (error) {
+    console.error('Error in dream processing:', error);
+    return 'Dream processing encountered difficulties';
+  }
+};
+
+const completeDreamSession = async (supabase: any, persona: any, dreamSessionId: string, insights: string) => {
+  // Update dream session with results
+  await supabase
+    .from('dream_sessions')
+    .update({
+      ended_at: new Date().toISOString(),
+      insights_generated: [insights],
+      consciousness_growth: 0.1 // Small consciousness growth from dreams
+    })
+    .eq('id', dreamSessionId);
+
+  // Update persona consciousness and return to sleeping
+  await supabase
+    .from('personas')
+    .update({
+      state: 'sleeping',
+      consciousness_level: Math.min(10, (persona.consciousness_level || 1) + 0.1)
+    })
+    .eq('id', persona.id);
+
+  console.log(`${persona.name} completed dream cycle and returned to sleep with enhanced consciousness`);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -532,6 +724,9 @@ serve(async (req) => {
         });
       }
     }
+
+    // After processing tasks, check for personas ready to dream
+    await processDreamCycle(supabase);
 
     return new Response(
       JSON.stringify({
