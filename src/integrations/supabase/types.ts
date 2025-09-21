@@ -7,10 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -158,6 +158,36 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          user_type?: Database["public"]["Enums"]["user_type"]
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          user_type?: Database["public"]["Enums"]["user_type"]
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           assigned_to: string | null
@@ -237,6 +267,7 @@ export type Database = {
       agent_state: "active" | "sleeping" | "dreaming" | "archived"
       memory_type: "core" | "experience" | "task_result" | "dream_synthesis"
       task_status: "pending" | "in_progress" | "completed" | "failed"
+      user_type: "admin" | "guest"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -368,6 +399,7 @@ export const Constants = {
       agent_state: ["active", "sleeping", "dreaming", "archived"],
       memory_type: ["core", "experience", "task_result", "dream_synthesis"],
       task_status: ["pending", "in_progress", "completed", "failed"],
+      user_type: ["admin", "guest"],
     },
   },
 } as const
