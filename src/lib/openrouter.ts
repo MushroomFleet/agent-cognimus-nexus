@@ -81,7 +81,7 @@ export class OpenRouterClient {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': window.location.origin,
-        'X-Title': 'Zero-Vector-4 Agent System',
+        'X-Title': 'OrangeAI Agent System',
       },
       body: JSON.stringify(request),
     });
@@ -184,7 +184,7 @@ Please provide a detailed response addressing this task based on your expertise 
   }
 
   private getSelectedModel(): string {
-    return localStorage.getItem('openrouter_model') || 'anthropic/claude-3-5-sonnet-20241022';
+    return localStorage.getItem('orange_ai_selected_model') || localStorage.getItem('openrouter_model') || 'anthropic/claude-3-5-sonnet-20241022';
   }
 }
 
@@ -199,10 +199,12 @@ export class OpenRouterConfig {
   }
 
   static getSelectedModel(): string {
-    return localStorage.getItem('openrouter_model') || 'anthropic/claude-3-5-sonnet-20241022';
+    return localStorage.getItem('orange_ai_selected_model') || localStorage.getItem('openrouter_model') || 'anthropic/claude-3-5-sonnet-20241022';
   }
 
   static setSelectedModel(model: string): void {
+    localStorage.setItem('orange_ai_selected_model', model);
+    // Also keep legacy for compatibility
     localStorage.setItem('openrouter_model', model);
   }
 
